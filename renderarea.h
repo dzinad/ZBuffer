@@ -52,6 +52,8 @@
 
 #include <QWidget>
 #include <QPen>
+#include <QDrag>
+#include <QMimeData>
 #include "point3d.h"
 
 class RenderArea : public QWidget
@@ -67,16 +69,24 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 private:
-    std::vector<Point3D> cubePoints;
+    std::vector<Point3D> cubeVertices;
+    std::vector<std::vector<bool>> cubePoints;
     std::vector<std::vector<double>> depths;
     std::vector<std::vector<QColor>> colors;
-    QPen edgePen;
-    QPen cubePen;
-    QPen globePen;
+    QColor edgeColor;
+    QColor cubeColor;
+    QColor globeColor;
+    QColor backgroundColor;
+    bool dragStarted;
+    QPoint prevPosition;
     template<class T>
     void forEachPoint(const Point3D& p1, const Point3D& p2, T mapper);
     template<class T>
     void forEachPoint(const Point3D& p1, const Point3D& p2, const Point3D& p3, const Point3D& p4, T mapper);
+    void updateCubePoints(double x, double y);
     void updateDepth(double x, double y, double z, const QColor& color);
+    bool cubeContains(const int x, const int y);
 };

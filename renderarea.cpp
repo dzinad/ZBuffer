@@ -63,27 +63,30 @@ const int defaultHeight = 600;
 
 RenderArea::RenderArea(QWidget *parent)
     : QWidget(parent)
+    , cubePoints(defaultHeight, std::vector<bool>(defaultWidth))
     , depths(defaultHeight, std::vector<double>(defaultWidth))
     , colors(defaultHeight, std::vector<QColor>(defaultWidth))
-    , edgePen(Qt::black, 1)
-    , cubePen(Qt::blue, 1)
-    , globePen(Qt::red, 1)
+    , edgeColor(Qt::black)
+    , cubeColor(Qt::blue)
+    , globeColor(Qt::red)
+    , backgroundColor(Qt::white)
+    , dragStarted(false)
 {
     const int offsetX = 200;
     const int offsetY = 200;
     const int offsetZ = 200;
     const int expansionCoefficient = 50;
-    cubePoints.reserve(8);
-    cubePoints.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 0 + offsetY, expansionCoefficient * -3 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 0 + offsetY, expansionCoefficient * 3 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * std::sqrt(6) + offsetX, expansionCoefficient * -std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * -2 * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * std::sqrt(6) + offsetX, expansionCoefficient * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * -std::sqrt(6) + offsetX, expansionCoefficient * -std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 2 * std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
-    cubePoints.emplace_back(expansionCoefficient * -std::sqrt(6) + offsetX, expansionCoefficient * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
+    cubeVertices.reserve(8);
+    cubeVertices.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 0 + offsetY, expansionCoefficient * -3 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 0 + offsetY, expansionCoefficient * 3 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * std::sqrt(6) + offsetX, expansionCoefficient * -std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * -2 * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * std::sqrt(6) + offsetX, expansionCoefficient * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * -std::sqrt(6) + offsetX, expansionCoefficient * -std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * 0 + offsetX, expansionCoefficient * 2 * std::sqrt(2) + offsetY, expansionCoefficient * 1 + offsetZ);
+    cubeVertices.emplace_back(expansionCoefficient * -std::sqrt(6) + offsetX, expansionCoefficient * std::sqrt(2) + offsetY, expansionCoefficient * -1 + offsetZ);
     QPalette pal(palette());
-    pal.setColor(QPalette::Background, Qt::white);
+    pal.setColor(QPalette::Background, backgroundColor);
     setPalette(pal);
     setAutoFillBackground(true);
 }
@@ -104,30 +107,33 @@ void RenderArea::paintEvent(QPaintEvent * /* event */)
         rowOfDepths.assign(defaultWidth, std::numeric_limits<double>::max());
     }
     for (auto&& rowOfColors : colors) {
-        rowOfColors.assign(defaultWidth, Qt::transparent);
+        rowOfColors.assign(defaultWidth, backgroundColor);
+    }
+    for (auto&& rowOfCubePoints : cubePoints) {
+        rowOfCubePoints.assign(defaultWidth, false);
     }
 
     QPainter painter(this);
 
-    forEachPoint(cubePoints[0], cubePoints[2], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[0], cubePoints[5], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[0], cubePoints[6], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[1], cubePoints[3], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[1], cubePoints[4], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[1], cubePoints[7], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[2], cubePoints[3], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[2], cubePoints[4], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[3], cubePoints[5], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[4], cubePoints[6], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[5], cubePoints[7], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
-    forEachPoint(cubePoints[6], cubePoints[7], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::black); });
+    forEachPoint(cubeVertices[0], cubeVertices[2], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[0], cubeVertices[5], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[0], cubeVertices[6], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[3], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[4], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[7], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[2], cubeVertices[3], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[2], cubeVertices[4], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[3], cubeVertices[5], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[4], cubeVertices[6], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[5], cubeVertices[7], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
+    forEachPoint(cubeVertices[6], cubeVertices[7], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, edgeColor); });
 
-    forEachPoint(cubePoints[0], cubePoints[2], cubePoints[6], cubePoints[4], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
-    forEachPoint(cubePoints[0], cubePoints[2], cubePoints[5], cubePoints[3], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
-    forEachPoint(cubePoints[0], cubePoints[5], cubePoints[6], cubePoints[7], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
-    forEachPoint(cubePoints[1], cubePoints[3], cubePoints[4], cubePoints[2], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
-    forEachPoint(cubePoints[1], cubePoints[3], cubePoints[7], cubePoints[5], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
-    forEachPoint(cubePoints[1], cubePoints[4], cubePoints[7], cubePoints[6], [&] (double x, double y, double z, double) { updateDepth(x, y, z, Qt::blue); });
+    forEachPoint(cubeVertices[0], cubeVertices[2], cubeVertices[6], cubeVertices[4], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
+    forEachPoint(cubeVertices[0], cubeVertices[2], cubeVertices[5], cubeVertices[3], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
+    forEachPoint(cubeVertices[0], cubeVertices[5], cubeVertices[6], cubeVertices[7], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[3], cubeVertices[4], cubeVertices[2], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[3], cubeVertices[7], cubeVertices[5], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
+    forEachPoint(cubeVertices[1], cubeVertices[4], cubeVertices[7], cubeVertices[6], [&] (double x, double y, double z, double) { updateCubePoints(x, y); updateDepth(x, y, z, cubeColor); });
 
     const int r = 80;
     const int centerX = 200;
@@ -139,26 +145,37 @@ void RenderArea::paintEvent(QPaintEvent * /* event */)
         const int minY = -maxY;
         for (int y = minY; y <= maxY; y++) {
             const double z = -std::sqrt(r * r - x * x - y * y);
-            updateDepth(x + centerX, y + centerY, z + centerZ, Qt::red);
+            updateDepth(x + centerX, y + centerY, z + centerZ, globeColor);
         }
     }
 
-    QPen pen;
+    QImage image(defaultWidth, defaultHeight, QImage::Format_RGB888);
     for (size_t row = 0; row < defaultHeight; row++) {
         for (size_t column = 0; column < defaultWidth; column++) {
-            pen.setColor(colors[row][column]);
-            painter.setPen(pen);
-            painter.drawPoint(column, row);
+            image.setPixelColor(column, row, colors[row][column]);
         }
     }
+    painter.drawImage(0, 0, image);
+}
+
+void RenderArea::updateCubePoints(double x, double y)  {
+    const int column = static_cast<int>(x + .5);
+    const int row = static_cast<int>(y + .5);
+    if (column < 0 || column >= defaultWidth || row < 0 || row >= defaultHeight) {
+        return;
+    }
+    cubePoints[row][column] = true;
 }
 
 void RenderArea::updateDepth(double x, double y, double z, const QColor& color) {
-    const size_t column = static_cast<size_t>(x + .5);
-    const size_t row = static_cast<size_t>(y + .5);
-    if (column == 200) {
-        std::cout << "row = " << row << ", z = " << z << ", color = " << color.value() << std::endl;
+    const int column = static_cast<int>(x + .5);
+    const int row = static_cast<int>(y + .5);
+    if (column < 0 || column >= defaultWidth || row < 0 || row >= defaultHeight) {
+        return;
     }
+//    if (column == 200) {
+//        std::cout << "row = " << row << ", z = " << z << ", color = " << color.value() << std::endl;
+//    }
     if (depths[row][column] > z) {
         colors[row][column] = color;
         depths[row][column] = z;
@@ -166,14 +183,43 @@ void RenderArea::updateDepth(double x, double y, double z, const QColor& color) 
 }
 
 void RenderArea::mousePressEvent(QMouseEvent *event) {
-    if (event->button() == Qt::RightButton) {
-
-    } else {
-
+    std::cout << "mouse pressed" << std::endl;
+    if (cubeContains(event->x(), event->y())) {
+        std::cout << "cube contains" << std::endl;
+        dragStarted = true;
+        prevPosition.setX(event->x());
+        prevPosition.setY(event->y());
+        update();
     }
+    std::cout << "cube does not contain" << std::endl;
+}
 
+void RenderArea::mouseMoveEvent(QMouseEvent *event) {
+    if (dragStarted == false) {
+        return;
+    }
+    const int diffX = event->x() - prevPosition.x();
+    const int diffY = event->y() - prevPosition.y();
+    for (int i = 0; i < 8; i++) {
+        cubeVertices[i].x += diffX;
+        cubeVertices[i].y += diffY;
+    }
+    prevPosition.setX(event->x());
+    prevPosition.setY(event->y());
     update();
-    return;
+}
+
+void RenderArea::mouseReleaseEvent(QMouseEvent *event) {
+    std::cout << "mouse released" << std::endl;
+    dragStarted = false;
+    update();
+}
+bool RenderArea::cubeContains(const int x, const int y) {
+    std::cout << "cube containts start: " << x << ", " << y << std::endl;
+    if (x < 0 || x >= defaultWidth || y < 0 || y >= defaultHeight) {
+        return false;
+    }
+    return cubePoints[y][x];
 }
 
 template<class T>

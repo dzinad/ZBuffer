@@ -6,7 +6,7 @@ class Point3D
 {
 public:
     Point3D(int x, int y, double z);
-    const int x, y;
+    int x, y;
     const double z;
 };
 
