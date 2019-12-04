@@ -66,4 +66,16 @@ public:
 private:
     RenderArea *renderArea;
     QGridLayout *mainLayout;
+    QLabel* sizeLabel;
+    QLabel* closenessLabel;
+    QPushButton* sizeIncBtn;
+    QPushButton* sizeDecBtn;
+    QPushButton* closenessIncBtn;
+    QPushButton* closenessDecBtn;
+    QGridLayout* sizeLayout;
+    QGridLayout* closenessLayout;
+    void sizeIncClicked();
+    void sizeDecClicked();
+    void closenessIncClicked();
+    void closenessDecClicked();
 };

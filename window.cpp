@@ -56,15 +56,63 @@
 Window::Window()
 {
     renderArea = new RenderArea;
+    sizeLabel = new QLabel("Размер кубика: ");
+    closenessLabel = new QLabel("Близость кубика: ");
+    sizeIncBtn = new QPushButton("+");
+    sizeDecBtn = new QPushButton("-");
+    closenessIncBtn = new QPushButton("+");
+    closenessDecBtn = new QPushButton("-");
+
+    sizeLayout = new QGridLayout;
+    sizeLayout->addWidget(sizeIncBtn, 0, 0);
+    sizeLayout->addWidget(sizeDecBtn, 1, 0);
+
+    closenessLayout = new QGridLayout;
+    closenessLayout->addWidget(closenessIncBtn, 0, 0);
+    closenessLayout->addWidget(closenessDecBtn, 1, 0);
 
     mainLayout = new QGridLayout;
-    mainLayout->addWidget(renderArea, 0, 0, 1, 1);
+    mainLayout->addWidget(renderArea, 0, 0, 1, 4);
+    mainLayout->addWidget(sizeLabel, 1, 0);
+    mainLayout->addLayout(sizeLayout, 1, 1);
+    mainLayout->addWidget(closenessLabel, 1, 2);
+    mainLayout->addLayout(closenessLayout, 1, 3);
+
+    connect(sizeIncBtn, &QPushButton::clicked, this, &Window::sizeIncClicked);
+    connect(sizeDecBtn, &QPushButton::clicked, this, &Window::sizeDecClicked);
+    connect(closenessIncBtn, &QPushButton::clicked, this, &Window::closenessIncClicked);
+    connect(closenessDecBtn, &QPushButton::clicked, this, &Window::closenessDecClicked);
+
     setLayout(mainLayout);
 
     setWindowTitle(tr("Lab 5"));
 }
 
+void Window::sizeIncClicked() {
+    renderArea->sizeIncClicked();
+}
+
+void Window::sizeDecClicked() {
+    renderArea->sizeDecClicked();
+}
+
+void Window::closenessIncClicked() {
+    renderArea->closenessIncClicked();
+}
+
+void Window::closenessDecClicked() {
+    renderArea->closenessDecClicked();
+}
+
 Window::~Window() {
+    delete sizeLabel;
+    delete closenessLabel;
+    delete sizeIncBtn;
+    delete sizeDecBtn;
+    delete closenessIncBtn;
+    delete closenessDecBtn;
+    delete sizeLayout;
+    delete closenessLayout;
     delete renderArea;
     delete mainLayout;
 }

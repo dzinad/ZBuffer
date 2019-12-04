@@ -2,9 +2,11 @@ QT += widgets
 requires(qtConfig(combobox))
 
 HEADERS       = renderarea.h \
+                line3d.h \
                 point3d.h \
                 window.h
 SOURCES       = main.cpp \
+                line3d.cpp \
                 point3d.cpp \
                 renderarea.cpp \
                 window.cpp

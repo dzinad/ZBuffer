@@ -52,9 +52,8 @@
 
 #include <QWidget>
 #include <QPen>
-#include <QDrag>
-#include <QMimeData>
 #include "point3d.h"
+#include "line3d.h"
 
 class RenderArea : public QWidget
 {
@@ -65,6 +64,10 @@ public:
 
     QSize minimumSizeHint() const override;
     QSize sizeHint() const override;
+    void sizeIncClicked();
+    void sizeDecClicked();
+    void closenessIncClicked();
+    void closenessDecClicked();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -82,11 +85,15 @@ private:
     QColor backgroundColor;
     bool dragStarted;
     QPoint prevPosition;
+    int offsetX, offsetY, offsetZ;
+    int expansionCoeff;
+    void fillCubeVertices();
     template<class T>
     void forEachPoint(const Point3D& p1, const Point3D& p2, T mapper);
-    template<class T>
-    void forEachPoint(const Point3D& p1, const Point3D& p2, const Point3D& p3, const Point3D& p4, T mapper);
+    void fillPlane(const Point3D& p1, const Point3D& p2, const Point3D& p3, const Point3D& p4);
     void updateCubePoints(double x, double y);
-    void updateDepth(double x, double y, double z, const QColor& color);
+    void updateDepth(double x, double y, double z, const QColor& color, double colorCoeff);
     bool cubeContains(const int x, const int y);
+    int fitColorToBounds(int color);
+    static Point3D findPointInLine(const Line3D& line, const int x, const int defaultValue);
 };
